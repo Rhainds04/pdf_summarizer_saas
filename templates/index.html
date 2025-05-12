@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: rgb(45, 45, 65);
+            color: rgb(199, 199, 199);
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: rgb(35, 35, 55);
+            padding: 15px;
+            height: 100vh;
+            overflow-y: auto;
+            transition: width 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .sidebar.collapsed {
+            width: 50px;
+        }
+
+        .sidebar.collapsed *:not(button.toggle-btn) {
+            display: none;
+        }
+
+        .toggle-btn {
+            background-color: rgb(65, 65, 85);
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block; /* Ensure the button is block-level */
+        }
+
+        .newPdfButton{
+            background-color: rgb(141, 105, 148);
+            color: white;
+            border: none;
+            padding: 10px;
+            width: 100%;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: block; /* Ensure the button is block-level */
+        }
+
+        .search-container {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .sidebar input,
+        .sidebar button.save-btn {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: rgb(55, 55, 75);
+            color: white;
+            box-sizing: border-box; /* Ensure padding doesn't affect width */
+        }
+
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .sidebar li {
+            padding: 8px;
+            background-color: rgb(65, 65, 85);
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .sidebar li a {
+            color: rgb(199, 199, 199);
+            text-decoration: none;
+            display: block;
+            width: 100%;
+        }
+
+        .sidebar li:hover {
+            background-color: rgb(75, 75, 95);
+        }
+
+        .sidebar li.active {
+            background-color: rgb(85, 85, 105);
+            border-left: 3px solid rgb(100, 100, 220);
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            background-color: rgb(45, 45, 65);
+        }
+        
+        .main {
+            width: 70%;
+            padding: 20px;
+            max-width: 1200px;
+        }
+
+        form input[type="file"],
+        form select,
+        form input[type="submit"],
+        form button {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            background-color: rgb(65, 65, 85);
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        form input[type="submit"]:hover,
+        form button:hover {
+            background-color: rgb(85, 85, 105);
+        }
+
+        pre {
+            background-color: rgb(65, 65, 85);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-y: auto;
+            max-height: 300px;
+            white-space: pre-wrap;
+            font-size: 16px;
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        h2, h3 {
+            margin-top: 20px;
+            border-bottom: 1px solid rgb(75, 75, 95);
+            padding-bottom: 8px;
+        }
+
+        .action-buttons {
+            margin-top: 20px;
+        }
+
+        .action-buttons button {
+            margin-right: 10px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            background-color: rgb(65, 65, 85);
+            color: white;
+            cursor: pointer;
+        }
+
+        .action-buttons button:hover {
+            background-color: rgb(85, 85, 105);
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+        <button class="newPdfButton toggle-btn" onclick="window.location.href='/'">+</button>
+
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search..." onkeyup="filterSummaries()">
+        </div>
+        <ul id="summary-list">
+            <!-- List will be populated dynamically -->
+            {% for summary in saved_summaries %}
+                <li {% if viewing_saved and current_summary.id == summary.id %}class="active"{% endif %}>
+                    <a href="/view/{{ summary.id }}">{{ summary.title }}</a>
+                </li>
+            {% else %}
+                <li>No summaries saved yet</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="main-container">
+        <div class="main">
+        <h2>{% if viewing_saved %}Viewing: {{ current_summary.title }}{% else %}Upload PDF{% endif %}</h2>
+        
+        {% if not viewing_saved %}
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="pdf" />
+            <select name="lang">
+                <option value="en">English</option>
+                <option value="fr">French</option>
+                <option value="es">Spanish</option>
+            </select>
+            <input type="submit" value="Extract Text" />
+        </form>
+        {% endif %}
+
+        <h3>Extracted Text:</h3>
+        <pre>{{ text }}</pre>
+        <h3>Summary:</h3>
+        <pre>{{ summary }}</pre>
+
+        {% if summary and not viewing_saved %}
+        <form method="post" action="/save">
+            <input type="hidden" name="summary" value="{{ summary }}">
+            <input type="hidden" name="text" value="{{ text }}">
+            <button type="submit">💾 Save Summary</button>
+        </form>
+        {% endif %}
+
+        {% if viewing_saved %}
+        <div class="action-buttons">
+            <button onclick="window.location.href='/'">New Summary</button>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        function toggleSidebar() {
+            document.getElementById("sidebar").classList.toggle("collapsed");
+        }
+
+        function filterSummaries() {
+            var input = document.getElementById('search-input');
+            var filter = input.value.toUpperCase();
+            var ul = document.getElementById('summary-list');
+            var li = ul.getElementsByTagName('li');
+
+            for (var i = 0; i < li.length; i++) {
+                var a = li[i].getElementsByTagName('a')[0];
+                if (a) {
+                    var txtValue = a.textContent || a.innerText;
+                    if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                        li[i].style.display = '';
+                    } else {
+                        li[i].style.display = 'none';
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
